@@ -1,0 +1,98 @@
+﻿namespace jfcraft.block
+{
+	/// <summary>
+	/// Cactus
+	/// 
+	/// @author vivandoshi
+	/// 
+	/// </summary>
+
+	using javaforce.gl;
+
+	using jfcraft.data;
+	using jfcraft.client;
+	using jfcraft.opengl;
+	using static jfcraft.data.Direction;
+
+	public class BlockCactus : BlockBase
+	{
+	  private static GLModel model;
+	  public BlockCactus(string name, string[] names, string[] images) : base(name, names, images)
+	  {
+		isOpaque = false;
+		isAlpha = false;
+		isComplex = true;
+		isSolid = false;
+		if (model == null)
+		{
+		  model = Assets.getModel("cactus").model;
+		}
+	  }
+
+	  public override void buildBuffers(RenderDest dest, RenderData data)
+	  {
+		RenderBuffers buf = dest.getBuffers(buffersIdx);
+		buildBuffers(model.getObject("TOP"), buf, data, textures[0]);
+		buildBuffers(model.getObject("SIDES"), buf, data, textures[1]);
+		buildBuffers(model.getObject("BOTTOM"), buf, data, textures[2]);
+	  }
+
+	  public override bool place(Client client, Coords c)
+	  {
+		//can only place on sand or another cactus
+		//if placing on sand - make sure no other cactus is near
+		if (c.gy == 0)
+		{
+			return false;
+		}
+		int bid = c.chunk.getBlock(c.gx, c.gy - 1, c.gz);
+		if ((char)bid == Blocks.SAND)
+		{
+		  //check if cactus near by
+		  if (c.chunk.getBlock(c.gx + 1, c.gy, c.gz) == id)
+		  {
+			  return false;
+		  }
+		  if (c.chunk.getBlock(c.gx - 1, c.gy, c.gz) == id)
+		  {
+			  return false;
+		  }
+		  if (c.chunk.getBlock(c.gx, c.gy, c.gz + 1) == id)
+		  {
+			  return false;
+		  }
+		  if (c.chunk.getBlock(c.gx, c.gy, c.gz - 1) == id)
+		  {
+			  return false;
+		  }
+		}
+		else if ((char)bid == id)
+		{
+		  //ok
+		}
+		else
+		{
+		  return false;
+		}
+		c.chunk.setBlock(c.gx,c.gy,c.gz,id,0);
+		Static.server.broadcastSetBlock(c.chunk.dim,c.x,c.y,c.z,id,0);
+		return true;
+	  }
+
+	  private Coords c = new Coords();
+	  public override void tick(Chunk chunk, Tick tick)
+	  {
+		base.tick(chunk, tick);
+		//is block below still sand or cactus?
+		tick.toWorldCoords(chunk, c);
+		c.block = chunk.getBlockType(c.gx, c.gy - 1, c.gz);
+		int bid = c.block.id;
+		if ((char)bid == Blocks.SAND || (char)bid == id)
+		{
+		  return;
+		}
+		destroy(null, c, true);
+	  }
+	}
+
+}

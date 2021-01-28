@@ -1,0 +1,148 @@
+﻿
+
+
+
+
+
+
+using System;
+
+namespace jfcraft.block
+{
+	/// <summary>
+	/// Fire
+	/// 
+	/// @author vivandoshi
+	/// 
+	/// </summary>
+
+	using javaforce.gl;
+
+	using jfcraft.data;
+	using jfcraft.opengl;
+	using static jfcraft.data.Direction;
+	using static jfcraft.data.Types;
+
+	public class BlockFire : BlockBase
+	{
+	  private static GLModel model;
+	  public BlockFire(string id, string[] names, string[] images) : base(id, names, images)
+	  {
+		isOpaque = false;
+		isAlpha = false;
+		isComplex = true;
+		isSolid = false;
+		isBlocks2 = true;
+		canSelect = false;
+		canReplace = true;
+		dropBlock = "AIR";
+		model = Assets.getModel("fire").model;
+		resetBoxes(BlockHitTest_Type.BOTH);
+	  }
+	  public override void buildBuffers(RenderDest dest, RenderData data)
+	  {
+		RenderBuffers buf = dest.getBuffers(buffersIdx);
+		switch (data.dir2[X])
+		{
+		  case A: //not used
+			Static.log("BlockFire:dir==A???");
+			  goto case B;
+		  case B:
+			buildBuffers(model.getObject("FIRE"), buf, data, textures[0]);
+			return;
+		  case N:
+			buildBuffers(model.getObject("NORTH"), buf, data, textures[0]);
+			return;
+		  case E:
+			buildBuffers(model.getObject("EAST"), buf, data, textures[0]);
+			return;
+		  case S:
+			buildBuffers(model.getObject("SOUTH"), buf, data, textures[0]);
+			return;
+		  case W:
+			buildBuffers(model.getObject("WEST"), buf, data, textures[0]);
+			return;
+		}
+	  }
+	  private Random r = new Random();
+	  public override void rtick(Chunk chunk, int gx, int gy, int gz)
+	  {
+		int bits = chunk.getBits2(gx, gy, gz);
+		int dir = Chunk.getDir(bits);
+		int x = chunk.cx * 16 + gx;
+		int y = gy;
+		int z = chunk.cz * 16 + gz;
+		//spread fire to other dirs (75% chance)
+		if (dir == B && r.Next(100) < 75)
+		{
+		  int dx = 0, dy = 0, dz = 0;
+		  int sdir = r.Next(6);
+		  switch (sdir)
+		  {
+			case A:
+				dy = 1;
+				break;
+			case B:
+				dy = -1;
+				break;
+			case N:
+				dz = -1;
+				break;
+			case E:
+				dx = 1;
+				break;
+			case S:
+				dz = 1;
+				break;
+			case W:
+				dx = -1;
+				break;
+		  }
+		  if (chunk.getBlockType(gx + dx, gy + dy, gz + dz).material == MAT_WOOD)
+		  {
+			int xbits = Chunk.makeBits(B, 0);
+			chunk.clearBlock(gx + dx, gy + dy, gz + dz);
+			Static.server.broadcastClearBlock(chunk.dim, x + dx, y + dy, z + dz);
+			chunk.setBlock(gx + dx, gy + dy, gz + dz, id, xbits); //blocks2
+			Static.server.broadcastSetBlock(chunk.dim, x + dx, y + dy, z + dz, id, xbits); //blocks2
+		  }
+		}
+		int dx = 0, dy = 0, dz = 0;
+		switch (dir)
+		{
+		  case N:
+			  dz = -1;
+			  break;
+		  case E:
+			  dx = 1;
+			  break;
+		  case S:
+			  dz = 1;
+			  break;
+		  case W:
+			  dx = -1;
+			  break;
+		  case B:
+			  dy = -1;
+			  break;
+		}
+		if (dir == B)
+		{
+		  //check this block too
+		  if (chunk.getBlockType(gx, gy, gz).material == MAT_WOOD)
+		  {
+			int xbits = Chunk.makeBits(B, 0);
+			chunk.clearBlock(gx, gy, gz);
+			Static.server.broadcastClearBlock(chunk.dim, x, y, z);
+			chunk.setBlock(gx, gy, gz, id, xbits); //blocks2
+			Static.server.broadcastSetBlock(chunk.dim, x, y, z, id, xbits); //blocks2
+		  }
+		}
+		//set block in direction to fire (if material == wood)
+
+
+
+
+
+
+

@@ -1,0 +1,111 @@
+﻿using System;
+
+namespace jfcraft.packet
+{
+	/// <summary>
+	/// Packet with 5 Ints
+	/// 
+	/// @author vivandoshi
+	/// </summary>
+
+	using jfcraft.block;
+	using jfcraft.client;
+	using jfcraft.data;
+	using jfcraft.entity;
+	using jfcraft.move;
+	using jfcraft.opengl;
+
+	public class PacketClearBlock2 : Packet
+	{
+	  public int i1, i2, i3, i4, i5;
+	  public bool particles;
+
+	  public PacketClearBlock2()
+	  {
+	  }
+
+	  public PacketClearBlock2(sbyte cmd) : base(cmd)
+	  {
+	  }
+
+	  public PacketClearBlock2(sbyte cmd, int i1, int i2, int i3, int i4, int i5, bool particles) : base(cmd)
+	  {
+		this.i1 = i1;
+		this.i2 = i2;
+		this.i3 = i3;
+		this.i4 = i4;
+		this.i5 = i5;
+		this.particles = particles;
+	  }
+
+	  private static Random r = new Random();
+
+	  //process on client side
+	  public override void process(Client client)
+	  {
+		//i = cx,cz gx,gy,gz
+		int cx = i1;
+		int cz = i2;
+		int gx = i3;
+		int gy = i4;
+		int gz = i5;
+		Chunk chunk = client.world.chunks.getChunk(client.player.dim, cx,cz);
+		if (chunk == null)
+		{
+			return;
+		}
+		int bits = chunk.getBits(gx, gy, gz);
+		int var = Chunk.getVar(bits);
+		char oldid = chunk.clearBlock2(gx, gy, gz);
+		chunk.delCrack(gx, gy, gz);
+		if (particles)
+		{
+		  //generate particles
+		  float x = cx * 16f + gx;
+		  float y = gy;
+		  float z = cz * 16f + gz;
+		  BlockBase block = Static.blocks.blocks[oldid];
+		  SubTexture st = block.getDestroyTexture(var);
+		  if (st != null)
+		  {
+			for (int a = 0;a < 10;a++)
+			{
+			  Particle p = new Particle(x + r.nextFloat(), y + r.nextFloat(), z + r.nextFloat(), st, false);
+			  p.init(chunk.world);
+			  p.createVelocity();
+			  p.maxAge = r.Next(20) + 20;
+			  p.scale = r.nextFloat() / 20f + 0.1f;
+			  p.isGreen = block.isGreen;
+			  p.Move = new MoveGravity();
+			  chunk.addEntity(p);
+			}
+		  }
+		}
+	  }
+
+	  public override bool write(SerialBuffer buffer, bool file)
+	  {
+		base.write(buffer, file);
+		buffer.writeInt(i1);
+		buffer.writeInt(i2);
+		buffer.writeInt(i3);
+		buffer.writeInt(i4);
+		buffer.writeInt(i5);
+		buffer.writeBoolean(particles);
+		return true;
+	  }
+
+	  public override bool read(SerialBuffer buffer, bool file)
+	  {
+		base.read(buffer, file);
+		i1 = buffer.readInt();
+		i2 = buffer.readInt();
+		i3 = buffer.readInt();
+		i4 = buffer.readInt();
+		i5 = buffer.readInt();
+		particles = buffer.readBoolean();
+		return true;
+	  }
+	}
+
+}
